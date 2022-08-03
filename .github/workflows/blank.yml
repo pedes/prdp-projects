@@ -58,80 +58,13 @@ jobs:
                 "password": "${{ secrets.RELEASES_PASSWORD }}"
             }
             ]
-          
-      # maven build command, could add other flags if needed
-      - name: Build
-        run: mvn -B package --file check-in-papi-app/pom.xml
         
-      - name: Stamp artifact file name with commit hash
-        run: |
-          artifactName1=$(ls check-in-papi-app/target/*.jar | head -1)
-          commitHash=$(git rev-parse --short "$GITHUB_SHA")
-          artifactName2=$(ls check-in-papi-app/target/*.jar | head -1 | sed "s/.jar/.$commitHash.jar/g")
-          mv $artifactName1 $artifactName2
-          
-      # save the produced jar file to be deployed later    
-      - uses: actions/upload-artifact@v3
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog@v3.4.3
         with:
-            name: artifacts
-            path: check-in-papi-app/target/*.jar
-            
-            
-# Steps for executing the deployment against Cloudhub Anypoint Platform
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:    
-    - uses: actions/checkout@v3
-    - uses: actions/cache@v3
-      with:
-        path: ~/.m2/repository
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-        restore-keys: |
-          ${{ runner.os }}-maven-
-    - uses: actions/download-artifact@v3
-      with:
-        name: artifacts
-
-    - uses: s4u/maven-settings-action@v2.6.0
-      with:
-        servers: |
-          [{
-                "id": "anypoint-exchange-v3",
-                "username": "${{ secrets.ANYPOINT_USERNAME }}",
-                "password": "${{ secrets.ANYPOINT_PASSWORD }}"
-            },
-            {
-                "id": "cloudhub-deploy",
-                "username": "${{ secrets.ANYPOINT_USERNAME }}",
-                "password": "${{ secrets.ANYPOINT_PASSWORD }}"
-            },
-            {
-                "id": "releases-ee",
-                "username": "${{ secrets.RELEASES_USERNAME }}",
-                "password": "${{ secrets.RELEASES_PASSWORD }}"
-            }
-          ]
-          
-    - name: Deploy to CloudHub
-      env:
-        AUTHOR: "Andres Morales"
-      run: |
-        artifactName=$(ls *.jar | head -1)
-        mvn --file check-in-papi-app/pom.xml deploy -DmuleDeploy \
-        -DapplicationName="checkin-cicd-acm12" \
-        -Denvironment="dev" \
-        -Dapi.id="18030095" \
-        -Dencrypt.key="${{ secrets.ENCRYPT_KEY }}" \
-        -Dclient_id="${{ secrets.AP_CLIENTID }}" \
-        -Dclient_secret="${{ secrets.AP_CLIENTSECRET }}"
-        
-        
-        
-        
-        
-        
-        
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
         
         
         
